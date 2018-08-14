@@ -103,7 +103,7 @@ module.exports = () => {
       console.log(query)
     } catch (ex) {
       console.log(ex)
-    }
+  }
 ```
 
 ### Update Document by Id
@@ -127,7 +127,21 @@ module.exports = () => {
 
 ### Populate
 
-``TODO``
+```
+  try {
+      let query = await Order.find()
+          .populate('user') // Simple populate
+          .populate('product')
+          .populate({
+            path: 'product',
+            populate: { path: 'category' }
+          }) // Deep populate
+          .lean()
+      console.log(query)
+    } catch (ex) {
+      console.log(ex)
+  }
+```
 
 ### Aggregate
 
@@ -135,7 +149,120 @@ module.exports = () => {
 
 ### Embedded Queries
 
-``TODO``
+### Create Embedded Document
+
+```
+  try {
+      let query = await User.findByIdAndUpdate('5b7230980000000000000000', {
+        $push:{
+          'addresses' :{
+                zipCode: '83844',
+                addressLine1: '901 Paradise Creek St,',
+                addressLine2: '',
+                city: 'Moscow',
+                state: 'ID'
+                country: 'USA'
+          }
+        }     
+      }, {
+        new: true // Return updated document
+      })
+      .select({ 'addresses': { '$slice': -1 } }) //Return only created embedded doc
+      .lean()
+      console.log(query)
+    } catch (ex) {
+      console.log(ex)
+    }
+```
+
+### Retrieve one Embedded Document
+
+```
+  try {
+      const mongoose = require('mongoose')
+      
+      let query = await User.aggregate([
+        {
+          $match: {
+            '_id': mongoose.Types.ObjectId('5b7230980000000000000000')
+          }
+        }, {
+          $unwind: '$addresses'
+        }, {
+          $match: {
+            'addresses._id': mongoose.Types.ObjectId('5b72f0d20000000000000000')
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            addresses: {
+              $push: '$addresses'
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            addresses: '$addresses'
+          }
+        }
+      ])
+      console.log(query[0].addresses[0])
+    } catch (ex) {
+      console.log(ex)
+    }
+```
+
+### Update Embedded Document
+
+```
+  try {
+      let query = await User.findOneAndUpdate({
+        _id: '5b7230980000000000000000',
+        'addresses._id': '5b72f0d20000000000000000'
+        }, {
+          $set:{
+            'addresses.$.zipCode': '83844',
+            'addresses.$.addressLine1': '901 Paradise Creek St,',
+            'addresses.$.addressLine2': '',
+            'addresses.$.city': 'Moscow',
+            'addresses.$.state': 'ID'
+            'addresses.$.country': 'USA'
+        }     
+      }, {
+        new: true // Return updated document
+      })
+      .lean()
+      console.log(query)
+    } catch (ex) {
+      console.log(ex)
+    }
+```
+
+
+### Delete Embedded Document
+
+```
+  try {
+      let query = await User.findOneAndUpdate({
+        _id: '5b7230980000000000000000',
+        'addresses._id': '5b72f0d20000000000000000'
+        }, {
+          $pull:{
+            'addresses': {
+                _id: '5b72f0d20000000000000000'
+             }
+          }     
+      }, {
+        new: true // Return updated document
+      })
+      .lean()
+      console.log(query)
+    } catch (ex) {
+      console.log(ex)
+    }
+```
 
 ## Docs Migration
 
